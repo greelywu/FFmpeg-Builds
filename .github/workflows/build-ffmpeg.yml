@@ -1,4 +1,4 @@
-name: Build FFmpeg with dshow
+name: Build FFmpeg with dshow (Windows Native)
 
 on: [push, workflow_dispatch]
 
@@ -7,35 +7,27 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Install MSYS2 and dependencies
+
+      - name: Install dependencies
         run: |
-          choco install -y msys2
-          refreshenv
-          C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm --needed base-devel mingw-w64-x86_64-toolchain git"
-          C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm --needed mingw-w64-x86_64-ffmpeg"
+          choco install -y git make nasm yasm
 
       - name: Clone FFmpeg
-        shell: cmd
         run: |
           git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git
           cd ffmpeg
 
-      - name: Configure with dshow
-        shell: cmd
+      - name: Configure FFmpeg
         run: |
           cd ffmpeg
-          ./configure --enable-dshow --enable-gpl --enable-version3 --disable-w32threads --enable-pthreads
+          configure --enable-dshow --enable-gpl --enable-version3 --toolchain=msvc
 
       - name: Build FFmpeg
-        shell: cmd
         run: |
           cd ffmpeg
-          make -j4
+          make
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ffmpeg-with-dshow
-          path: |
-            ffmpeg/ffmpeg.exe
-            ffmpeg/ffprobe.exe
+          name: ffmpeg-binaries
+          path: ffmpeg/ff*.exe
