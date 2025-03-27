@@ -1,4 +1,4 @@
-name: Build FFmpeg (Windows + MSYS2)
+name: Build FFmpeg (Windows)
 
 on: [push, workflow_dispatch]
 
@@ -11,17 +11,37 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           update: true
-          install: base-devel mingw-w64-x86_64-toolchain git yasm nasm
-          
-      - name: Configure and Build FFmpeg
+          install: >-
+            base-devel
+            mingw-w64-x86_64-toolchain
+            git
+            yasm
+            nasm
+            make
+            pkg-config
+            diffutils
+
+      - name: Clone FFmpeg
         shell: msys2 {0}
         run: |
-          git clone https://git.ffmpeg.org/ffmpeg.git
+          git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git
           cd ffmpeg
-          ./configure --enable-gpl --enable-libx264
+
+      - name: Configure FFmpeg (Minimal)
+        shell: msys2 {0}
+        run: |
+          cd ffmpeg
+          ./configure \
+            --prefix=/usr/local \
+            --enable-shared \
+            --enable-gpl \
+            --enable-version3 \
+            --disable-w32threads \
+            --enable-pthreads
+
+      - name: Build FFmpeg
+        shell: msys2 {0}
+        run: |
+          cd ffmpeg
           make -j$(nproc)
-          
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ffmpeg-binaries
-          path: ffmpeg/ffmpeg.exe
+          make install
