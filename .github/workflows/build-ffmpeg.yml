@@ -37,7 +37,8 @@ jobs:
             --enable-gpl \
             --enable-version3 \
             --disable-w32threads \
-            --enable-pthreads
+            --enable-pthreads \
+            --enable-dshow
 
       - name: Build FFmpeg
         shell: msys2 {0}
