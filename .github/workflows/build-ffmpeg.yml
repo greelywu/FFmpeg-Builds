@@ -1,33 +1,45 @@
-name: Build FFmpeg with dshow (Windows Native)
+name: Build FFmpeg with dshow
 
-on: [push, workflow_dispatch]
+on: [push]
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          choco install -y git make nasm yasm
-
-      - name: Clone FFmpeg
-        run: |
-          git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git
-          cd ffmpeg
-
-      - name: Configure FFmpeg
-        run: |
-          cd ffmpeg
-          configure --enable-dshow --enable-gpl --enable-version3 --toolchain=msvc
-
-      - name: Build FFmpeg
-        run: |
-          cd ffmpeg
-          make
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ffmpeg-binaries
-          path: ffmpeg/ff*.exe
+    - uses: actions/checkout@v4
+    
+    - name: Install MSYS2
+      run: choco install -y msys2
+      
+    - name: Install dependencies
+      shell: msys2 {0}
+      run: |
+        pacman -Sy --noconfirm --needed \
+          mingw-w64-x86_64-toolchain \
+          git \
+          make \
+          yasm \
+          nasm
+        
+    - name: Configure FFmpeg
+      shell: msys2 {0}
+      run: |
+        git clone https://git.ffmpeg.org/ffmpeg.git
+        cd ffmpeg
+        ./configure \
+          --enable-dshow \
+          --enable-gpl \
+          --enable-version3 \
+          --disable-w32threads \
+          --enable-pthreads
+        
+    - name: Build FFmpeg
+      shell: msys2 {0}
+      run: |
+        cd ffmpeg
+        make -j$(nproc)
+        
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ffmpeg-dshow
+        path: ffmpeg/ffmpeg.exe
