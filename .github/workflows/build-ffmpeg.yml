@@ -1,4 +1,4 @@
-name: Build FFmpeg (Windows)
+name: Build FFmpeg with dshow
 
 on: [push, workflow_dispatch]
 
@@ -8,41 +8,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          install: >-
-            base-devel
-            mingw-w64-x86_64-toolchain
-            git
-            yasm
-            nasm
-            make
-            pkg-config
-            diffutils
+      - name: Install MSYS2 and dependencies
+        run: |
+          choco install -y msys2
+          refreshenv
+          C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm --needed base-devel mingw-w64-x86_64-toolchain git"
+          C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm --needed mingw-w64-x86_64-ffmpeg"
 
       - name: Clone FFmpeg
-        shell: msys2 {0}
+        shell: cmd
         run: |
           git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git
           cd ffmpeg
 
-      - name: Configure FFmpeg (Minimal)
-        shell: msys2 {0}
+      - name: Configure with dshow
+        shell: cmd
         run: |
           cd ffmpeg
-          ./configure \
-            --prefix=/usr/local \
-            --enable-shared \
-            --enable-gpl \
-            --enable-version3 \
-            --disable-w32threads \
-            --enable-pthreads \
-            --enable-dshow
+          ./configure --enable-dshow --enable-gpl --enable-version3 --disable-w32threads --enable-pthreads
 
       - name: Build FFmpeg
-        shell: msys2 {0}
+        shell: cmd
         run: |
           cd ffmpeg
-          make -j$(nproc)
-          make install
+          make -j4
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-with-dshow
+          path: |
+            ffmpeg/ffmpeg.exe
+            ffmpeg/ffprobe.exe
