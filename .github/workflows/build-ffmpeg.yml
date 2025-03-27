@@ -1,4 +1,4 @@
-name: Build FFmpeg (Windows)
+name: Build FFmpeg (Windows + MSYS2)
 
 on: [push, workflow_dispatch]
 
@@ -7,28 +7,21 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install MSYS2
-        run: |
-          choco install msys2 -y
-          refreshenv
-          msys2 -c "pacman -Syu --noconfirm"
-          msys2 -c "pacman -S --noconfirm base-devel mingw-w64-x86_64-toolchain yasm nasm"
-      - name: Clone FFmpeg
-        run: git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
-      - name: Configure and Build
+      
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: base-devel mingw-w64-x86_64-toolchain git yasm nasm
+          
+      - name: Configure and Build FFmpeg
         shell: msys2 {0}
         run: |
+          git clone https://git.ffmpeg.org/ffmpeg.git
           cd ffmpeg
-          ./configure \
-            --arch=x86_64 \
-            --target-os=win64 \
-            --enable-shared \
-            --enable-gpl \
-            --enable-libx264 \
-            --enable-dshow
+          ./configure --enable-gpl --enable-libx264
           make -j$(nproc)
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+          
+      - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-binaries
           path: ffmpeg/ffmpeg.exe
