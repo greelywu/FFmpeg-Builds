@@ -1,4 +1,4 @@
-name: FFmpeg Windows Build
+name: Build FFmpeg with dshow (Windows)
 
 on: [push]
 
@@ -8,7 +8,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: msys2/setup-msys2@v2
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
         with:
           update: true
           install: >-
@@ -18,23 +19,21 @@ jobs:
             make
             yasm
             nasm
-            diffutils
-            pkg-config
-            mingw-w64-x86_64-libx264
             
-      - name: Build FFmpeg
+      - name: Configure FFmpeg
         shell: msys2 {0}
         run: |
           git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git
           cd ffmpeg
           ./configure \
-            --enable-dshow \
             --enable-gpl \
-            --enable-libx264 \
-            --disable-w32threads
+            --enable-version3 \
+            --enable-dshow \
+            --disable-w32threads \
+            --enable-pthreads || (cat ffbuild/config.log && exit 1)
+            
+      - name: Build FFmpeg
+        shell: msys2 {0}
+        run: |
+          cd ffmpeg
           make -j$(nproc)
-          
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ffmpeg-binaries
-          path: ffmpeg/ffmpeg.exe
